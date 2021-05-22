@@ -6,14 +6,14 @@ app = Flask(__name__)
 app.config['MONGO_URI'] = os.environ.get('MONGO_URI')
 mongo = PyMongo(app)
 
-@app.route('/current-turn')
+@app.route('/current-turn', methods=['POST', 'GET'])
 def current_turn():
     backend = current_user_for('backend')
     frontend = current_user_for('frontend')
     pair = backend['name'] + ' - ' + frontend['name']
     return pair
 
-@app.route('/next-turn')
+@app.route('/next-turn', methods=['POST', 'GET'])
 def next_turn():
     backend = next_user_for('backend')
     frontend = next_user_for('frontend')
