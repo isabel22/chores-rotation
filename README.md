@@ -1,6 +1,6 @@
 # Support Rotation
 
-Small script to rotate pair of users in charge of the support of the team.
+API endpoints to rotate, get and set a pair of users in charge of the support of the team.
 
 ## Endpoints 
 * `/current-turn`:
