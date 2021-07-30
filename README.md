@@ -1,6 +1,6 @@
-# Support Rotation
+# Chores Rotation
 
-API endpoints to rotate, get and set a pair of users in charge of the support of the team.
+API endpoints to rotate, get and set a group of people or a single person in charge of the chores of a team.
 
 ## Endpoints 
 * `/current-turn`:
