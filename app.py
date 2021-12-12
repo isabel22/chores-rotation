@@ -4,10 +4,13 @@ from flask_sqlalchemy import SQLAlchemy
 from models import *
 from slack import WebClient
 from flask import request
+from datetime import datetime
+from sqlalchemy import create_engine
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://isabel:@localhost/chores_rotation')
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db_url = os.environ.get('DATABASE_URL')
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 client = WebClient(token=os.environ.get('SLACK_TOKEN'))
 
 db.init_app(app)
@@ -21,18 +24,15 @@ if __name__ == "__main__":
 
 @app.route('/current-turn', methods=['POST', 'GET'])
 def current_turn():
-    backend = current_user_for('backend')
-    frontend = current_user_for('frontend')
-    # pair = backend['name'] + ' - ' + frontend['name']
-    return os.environ.get('DATABASE_URL')
+    chore = request.args.get('chore')
+    current_user_ids = find_users_for(chore, "true")
+    current_turn_names = value_for("name", current_user_ids)
+    return ' - '.join(current_turn_names)
 
 @app.route('/next-turn', methods=['POST', 'GET'])
 def next_turn():
-    backend = next_user_for('backend')
-    frontend = next_user_for('frontend')
-    # pair = backend['name'] + ' - ' + frontend['name']
-    # assign_new_topic_on_channels(pair)
-    return "a"
+    chore = request.args.get('chore')
+    return change_turn_for(chore)
 
 @app.route('/new-team', methods=['POST'])
 def new_team():
@@ -62,26 +62,54 @@ def list_users():
     except Exception as e:
         return(str(e))
 
-def next_user_for(team):
-    current = current_user_for(team)
-    next = find_user(team, current[team+'_id'] + 1)
-    if next is None:
-        next = find_user(team, 1)
-    update(next, { '$set': { 'actual': True } })
-    update(current, { '$set': { 'actual': False } })
-    return next
+def change_turn_for(chore):
+    next_user_ids = find_users_for(chore, "false")
+    current_user_ids = find_users_for(chore, "true")
+    next_turn_names = value_for("name", next_user_ids)
+    current_turn_names = value_for("name", current_user_ids)
 
-def current_user_for(team):
-    "a"
-    # return mongo.db.admin_ops.find_one({'team': team, 'actual': True, 'enabled': True})
+    update_status_for(current_user_ids, False)
+    update_status_for(next_user_ids, True)
 
-def update(user, values):
-    ''
-    # mongo.db.admin_ops.update_one(user, values)
+    return " - ".join(next_turn_names)
 
-def find_user(team, id):
-    ''
-    # return mongo.db.admin_ops.find_one({'team': team, team+'_id': id, 'enabled': True})
+def update_status_for(user_ids, status):
+    mappings = []
+
+    for user_chore in db.session.query(UserChore).filter(UserChore.user_id.in_(list(user_ids))).all():
+        info = { 'id': user_chore.id, 'active': status }
+        extra = { 'last_turn': datetime.now() }
+        info = {**info, **extra} if status == True else info
+
+        mappings.append(info)
+
+    db.session.bulk_update_mappings(UserChore, mappings)
+    db.session.flush()
+    db.session.commit()
+
+def find_users_for(chore, active_user):
+    chore_id=Chore.query.filter_by(name=chore).first().id
+
+    engine = create_engine(db_url)
+    connection = engine.connect()
+    result = connection.execute("select distinct on (team_id) team_id, u.id, name, email, last_turn from user_chores as uc, users as u where uc.active = " + active_user + " and uc.user_id = u.id and u.active = true and uc.chore_id = " + str(chore_id) + " order by team_id, last_turn asc")
+
+    ids = []
+    for row in result:
+      ids.append(row['id'])
+
+    return ids
+
+def value_for(column, user_ids):
+    engine = create_engine(db_url)
+    connection = engine.connect()
+    user_ids_str = ", ".join(str(value) for value in user_ids)
+    result = connection.execute("select " + column + " from users where id in (" + user_ids_str + ")")
+    names = []
+    for row in result:
+      names.append(row[0])
+
+    return names
 
 def assign_new_topic_on_channels(topic):
     channels = os.environ.get('CHANNELS').split(" ")
