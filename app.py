@@ -62,6 +62,15 @@ def list_users():
     except Exception as e:
         return(str(e))
 
+@app.route('/list-teams', methods=['POST', 'GET'])
+def list_teams():
+    try:
+        teams = Team.query.all()
+        return "\n".join(team.name for team in teams)
+
+    except Exception as e:
+        return(str(e))
+
 def change_turn_for(chore):
     next_user_ids = find_users_for(chore, "false")
     current_user_ids = find_users_for(chore, "true")
