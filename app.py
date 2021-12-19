@@ -8,7 +8,7 @@ from datetime import datetime
 from sqlalchemy import create_engine
 
 app = Flask(__name__)
-db_url = os.environ.get('DATABASE_URL')
+db_url = os.environ.get('DB_URL')
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 client = WebClient(token=os.environ.get('SLACK_TOKEN'))
