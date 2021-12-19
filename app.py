@@ -71,6 +71,44 @@ def list_teams():
     except Exception as e:
         return(str(e))
 
+@app.route('/assign-chore', methods=['POST', 'GET'])
+def assign_chore():
+    chore = request.args.get('chore')
+    email = request.args.get('email')
+
+    return assign(email, chore)
+
+def assign(email, chore):
+    try:
+        user = User.query.filter_by(email=email).first()
+        chore_object = Chore.query.filter_by(name=chore).first()
+        if user is None or chore_object is None:
+            return "Email or Chore does not exist"
+        else:
+            try:
+                user_chore = UserChore.query.filter_by(user_id=user.id, chore_id=chore_object.id).first()
+
+                if user_chore is None:
+                    user_chore=UserChore(user_id=user.id, chore_id=chore_object.id, active=False, last_turn=datetime.now())
+                    db.session.add(user_chore)
+                    db.session.commit()
+                    return user.name + " assigned to " + chore
+                else:
+                    return "Chore was already assigned to " + user.name
+
+            except Exception as e:
+                try:
+                    user_chore=UserChore(user_id=user.id, chore_id=chore_object.id, active=False, last_turn=datetime.now())
+                    db.session.add(user_chore)
+                    db.session.commit()
+                    return user.name + " assigned to " + chore
+                except Exception as e:
+                    return(str(e))
+
+    except Exception as e:
+        return (str(e))
+
+
 def change_turn_for(chore):
     next_user_ids = find_users_for(chore, "false")
     current_user_ids = find_users_for(chore, "true")
