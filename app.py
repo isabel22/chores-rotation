@@ -71,6 +71,15 @@ def list_teams():
     except Exception as e:
         return(str(e))
 
+@app.route('/list-chores', methods=['POST', 'GET'])
+def list_chores():
+    try:
+        chores = Chore.query.all()
+        return "\n".join(chore.name for chore in chores)
+
+    except Exception as e:
+        return(str(e))
+
 @app.route('/assign-chore', methods=['POST', 'GET'])
 def assign_chore():
     chore = request.args.get('chore')
