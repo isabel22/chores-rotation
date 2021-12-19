@@ -53,6 +53,16 @@ def new_user():
     else:
         return "User already exists"
 
+@app.route('/new-chore', methods=['POST'])
+def new_chore():
+    name = request.args.get('name')
+    required_users = request.args.get('required_users')
+
+    if validate_unique_chore(name) is True:
+        return create_chore(name, required_users)
+    else:
+        return "Chore already exists"
+
 @app.route('/list-users', methods=['POST', 'GET'])
 def list_users():
     try:
@@ -182,12 +192,31 @@ def validate_unique_team(name):
     except Exception as e:
         return True
 
+def validate_unique_chore(name):
+    try:
+        chore=Chore.query.filter_by(name=name).first()
+        if chore is None:
+            return True
+        else:
+            return False
+    except Exception as e:
+        return True
+
 def create_team(name):
     try:
         team=Team(name=name)
         db.session.add(team)
         db.session.commit()
         return "Team added"
+    except Exception as e:
+        return(str(e))
+
+def create_chore(name, required_users):
+    try:
+        chore=Chore(name=name, required_users=required_users)
+        db.session.add(chore)
+        db.session.commit()
+        return "Chore added"
     except Exception as e:
         return(str(e))
 

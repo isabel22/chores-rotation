@@ -13,6 +13,11 @@ API endpoints to rotate, get and set a group of people or a single person in cha
   * Creates a new team.
   * params:
     * `name`: String
+* `/new_chore`:
+  * Creates a new chore.
+  * params:
+    * `name`: String
+    * `required_users`: Integer
 * `/new-user`:
   * Creates a new user.
   * params:
